@@ -4,7 +4,6 @@ export enum AppView {
   POS = 'pos',
   QUOTES = 'quotes',
   SERVICE_ORDERS = 'service_orders',
-  AI_ASSISTANT = 'ai_assistant',
   TOOLS = 'tools',
   LOGS = 'logs'
 }

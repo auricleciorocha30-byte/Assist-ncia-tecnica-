@@ -5,7 +5,6 @@ import {
   ShoppingCart, 
   FileText, 
   Cpu, 
-  MessageSquareText, 
   Wrench, 
   History, 
   Bell, 
@@ -16,7 +15,6 @@ import {
 import { AppView, Device, ServiceOrder, Quote } from './types';
 import Dashboard from './components/Dashboard';
 import ServiceOrders from './components/ServiceOrders';
-import AIAssistant from './components/AIAssistant';
 import Tools from './components/Tools';
 import Logs from './components/Logs';
 import POS from './components/POS';
@@ -46,7 +44,6 @@ const App: React.FC = () => {
     { id: AppView.SERVICE_ORDERS, label: 'Assistência (OS)', icon: ClipboardList },
     { id: AppView.POS, label: 'Vendas (PDV)', icon: ShoppingCart },
     { id: AppView.QUOTES, label: 'Orçamentos', icon: FileText },
-    { id: AppView.AI_ASSISTANT, label: 'Assistente IA', icon: MessageSquareText },
     { id: AppView.TOOLS, label: 'Ferramentas', icon: Wrench },
     { id: AppView.LOGS, label: 'Histórico', icon: History },
   ];
@@ -57,7 +54,6 @@ const App: React.FC = () => {
       case AppView.POS: return <POS />;
       case AppView.QUOTES: return <Quotes quotes={quotes} setQuotes={setQuotes} />;
       case AppView.SERVICE_ORDERS: return <ServiceOrders orders={serviceOrders} setOrders={setServiceOrders} />;
-      case AppView.AI_ASSISTANT: return <AIAssistant />;
       case AppView.TOOLS: return <Tools />;
       case AppView.LOGS: return <Logs />;
       default: return <Dashboard devices={devices} serviceOrders={serviceOrders} />;
