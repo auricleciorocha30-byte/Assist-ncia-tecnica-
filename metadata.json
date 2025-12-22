@@ -1,0 +1,8 @@
+{
+  "name": "TechGuard Pro",
+  "description": "Uma plataforma inteligente para técnicos de informática e segurança eletrônica, com assistente de IA para diagnósticos e ferramentas de cálculo.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
