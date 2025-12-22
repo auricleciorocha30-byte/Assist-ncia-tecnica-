@@ -10,7 +10,8 @@ import {
   Bell, 
   Settings,
   Search,
-  ClipboardList
+  ClipboardList,
+  Menu
 } from 'lucide-react';
 import { AppView, Device, ServiceOrder, Quote } from './types';
 import Dashboard from './components/Dashboard';
@@ -22,8 +23,8 @@ import Quotes from './components/Quotes';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Mock devices for dashboard (maintained even without inventory view)
   const [devices] = useState<Device[]>([
     { id: '1', name: 'Câmera Portaria', type: 'Câmera', ipAddress: '192.168.1.50', status: 'online', lastSeen: 'Agora', location: 'Entrada Principal' },
     { id: '2', name: 'Servidor Local', type: 'Servidor', ipAddress: '192.168.1.10', status: 'maintenance', lastSeen: 'Há 2 horas', location: 'Data Center' },
@@ -60,9 +61,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleNavClick = (view: AppView) => {
+    setCurrentView(view);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <aside className="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
+    <div className="flex h-screen bg-slate-50 overflow-hidden relative">
+      {/* Sidebar Desktop */}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col hidden lg:flex">
         <div className="p-6 flex items-center gap-3">
           <div className="bg-blue-600 p-2 rounded-lg">
             <Cpu size={24} />
@@ -89,28 +96,53 @@ const App: React.FC = () => {
             );
           })}
         </nav>
-
-        <div className="p-4 border-t border-slate-800">
-          <button className="flex items-center gap-3 px-4 py-2 w-full text-slate-400 hover:text-white transition-colors text-sm">
-            <Settings size={18} />
-            <span>Configurações</span>
-          </button>
-        </div>
       </aside>
 
+      {/* Menu Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-sm lg:hidden flex flex-col">
+          <div className="p-6 flex items-center justify-between border-b border-white/10">
+            <h1 className="text-xl font-bold text-white">TechGuard<span className="text-blue-500">Pro</span></h1>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="text-white p-2">
+              <Settings size={24} className="rotate-45" />
+            </button>
+          </div>
+          <div className="flex-1 p-6 space-y-4">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-lg font-bold transition-all ${
+                    currentView === item.id ? 'bg-blue-600 text-white' : 'text-slate-400'
+                  }`}
+                >
+                  <Icon size={24} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 z-10">
-          <div className="flex items-center gap-4 flex-1">
-            <div className="relative max-w-md w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
+          <div className="flex items-center gap-3 flex-1">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 lg:hidden text-slate-600 hover:bg-slate-100 rounded-lg">
+              <Menu size={24} />
+            </button>
+            <div className="relative max-w-xs md:max-w-md w-full hidden sm:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input 
                 type="text" 
-                placeholder="Buscar cliente, OS ou equipamento..." 
-                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 text-sm outline-none"
+                placeholder="Buscar..." 
+                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 text-xs md:text-sm outline-none"
               />
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative">
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
@@ -121,7 +153,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50">
+        <div className="flex-1 overflow-y-auto bg-slate-50 touch-pan-y">
           {renderView()}
         </div>
       </main>
