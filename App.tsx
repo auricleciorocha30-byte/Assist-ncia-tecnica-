@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -12,7 +12,10 @@ import {
   Search,
   ClipboardList,
   Menu,
-  LogOut
+  LogOut,
+  X,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import { AppView, Device, ServiceOrder, Quote, UserAccount } from './types';
 import Dashboard from './components/Dashboard';
@@ -31,6 +34,8 @@ const App: React.FC = () => {
   
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
   
   const [devices] = useState<Device[]>([
     { id: '1', name: 'Câmera Portaria', type: 'Câmera', ipAddress: '192.168.1.50', status: 'online', lastSeen: 'Agora', location: 'Entrada Principal' },
@@ -55,11 +60,22 @@ const App: React.FC = () => {
     }
   }, [currentUser]);
 
+  // Fechar notificações ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleLogout = () => {
     setCurrentUser(null);
   };
 
-  const notificationCount = useMemo(() => {
+  const alertedOS = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return serviceOrders.filter(os => 
       os.status !== 'Entregue' && 
@@ -67,8 +83,10 @@ const App: React.FC = () => {
       os.status !== 'Pronto' &&
       os.estimatedDeliveryDate && 
       os.estimatedDeliveryDate <= today
-    ).length;
+    );
   }, [serviceOrders]);
+
+  const notificationCount = alertedOS.length;
 
   const navItems = [
     { id: AppView.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
@@ -98,6 +116,11 @@ const App: React.FC = () => {
   const handleNavClick = (view: AppView) => {
     setCurrentView(view);
     setIsMobileMenuOpen(false);
+    setIsNotificationOpen(false);
+  };
+
+  const handleNotificationClick = () => {
+    setIsNotificationOpen(!isNotificationOpen);
   };
 
   return (
@@ -117,7 +140,7 @@ const App: React.FC = () => {
             return (
               <button
                 key={item.id}
-                onClick={() => setCurrentView(item.id)}
+                onClick={() => handleNavClick(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   currentView === item.id 
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
@@ -157,7 +180,7 @@ const App: React.FC = () => {
           <div className="p-6 flex items-center justify-between border-b border-white/10">
             <h1 className="text-xl font-bold text-white">TechGuard<span className="text-blue-500">Pro</span></h1>
             <button onClick={() => setIsMobileMenuOpen(false)} className="text-white p-2">
-              <Settings size={24} className="rotate-45" />
+              <X size={24} />
             </button>
           </div>
           <div className="flex-1 p-6 space-y-4">
@@ -197,7 +220,7 @@ const App: React.FC = () => {
       )}
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-10 shrink-0 relative">
           <div className="flex items-center gap-3 flex-1">
             <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 lg:hidden text-slate-600 hover:bg-slate-100 rounded-lg">
               <Menu size={24} />
@@ -211,19 +234,86 @@ const App: React.FC = () => {
               />
             </div>
           </div>
+          
           <div className="flex items-center gap-2 md:gap-4">
             <div className="hidden md:flex flex-col text-right mr-2">
               <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">Online agora</span>
               <span className="text-xs font-bold text-slate-800">{currentUser.name}</span>
             </div>
-            <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative">
-              <Bell size={20} />
-              {notificationCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full border-2 border-white animate-bounce">
-                  {notificationCount}
-                </span>
+            
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={handleNotificationClick}
+                className={`p-2 rounded-full transition-all relative ${isNotificationOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                <Bell size={20} />
+                {notificationCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full border-2 border-white animate-bounce">
+                    {notificationCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Painel de Notificações */}
+              {isNotificationOpen && (
+                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[100]">
+                  <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">Alertas de Prazo</h3>
+                    <span className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{notificationCount}</span>
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                    {alertedOS.length > 0 ? (
+                      <div className="divide-y divide-slate-50">
+                        {alertedOS.map(os => {
+                          const isOverdue = os.estimatedDeliveryDate! < new Date().toISOString().split('T')[0];
+                          return (
+                            <button 
+                              key={os.id}
+                              onClick={() => handleNavClick(AppView.SERVICE_ORDERS)}
+                              className="w-full p-4 text-left hover:bg-slate-50 transition-colors flex gap-4 items-start group"
+                            >
+                              <div className={`p-2 rounded-xl shrink-0 ${isOverdue ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'}`}>
+                                {isOverdue ? <AlertCircle size={18} /> : <Clock size={18} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start mb-0.5">
+                                  <span className="font-black text-xs text-slate-800">{os.id}</span>
+                                  <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>
+                                    {isOverdue ? 'Atrasada' : 'Hoje'}
+                                  </span>
+                                </div>
+                                <p className="text-xs font-bold text-slate-700 truncate">{os.clientName}</p>
+                                <p className="text-[10px] text-slate-400 font-medium truncate">{os.deviceModel}</p>
+                                <div className="mt-2 flex items-center text-[10px] text-blue-600 font-black uppercase group-hover:translate-x-1 transition-transform">
+                                  Ver Detalhes →
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-10 text-center">
+                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-400">
+                          <Bell size={24} />
+                        </div>
+                        <p className="text-sm font-bold text-slate-800">Tudo em dia!</p>
+                        <p className="text-xs text-slate-400 mt-1">Nenhuma ordem de serviço com prazo crítico no momento.</p>
+                      </div>
+                    )}
+                  </div>
+                  {alertedOS.length > 0 && (
+                    <button 
+                      onClick={() => handleNavClick(AppView.SERVICE_ORDERS)}
+                      className="w-full p-4 bg-slate-50 text-center text-xs font-black text-slate-500 hover:text-blue-600 border-t border-slate-100 transition-colors uppercase tracking-widest"
+                    >
+                      Ver Todas as Ordens
+                    </button>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
+
             <div className="h-8 w-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
               {currentUser.name.charAt(0)}
             </div>
