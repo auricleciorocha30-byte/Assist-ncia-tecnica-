@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -11,17 +11,24 @@ import {
   Settings,
   Search,
   ClipboardList,
-  Menu
+  Menu,
+  LogOut
 } from 'lucide-react';
-import { AppView, Device, ServiceOrder, Quote } from './types';
+import { AppView, Device, ServiceOrder, Quote, UserAccount } from './types';
 import Dashboard from './components/Dashboard';
 import ServiceOrders from './components/ServiceOrders';
 import Tools from './components/Tools';
 import Logs from './components/Logs';
 import POS from './components/POS';
 import Quotes from './components/Quotes';
+import Login from './components/Login';
 
 const App: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    const saved = localStorage.getItem('techguard_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -33,12 +40,35 @@ const App: React.FC = () => {
   ]);
 
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([
-    { id: 'OS-1001', clientName: 'Carlos Eduardo', clientPhone: '(11) 98888-7777', deviceModel: 'Dell Vostro 3500', issueDescription: 'Não liga, suspeita de curto na placa mãe.', entryDate: '2023-10-25', status: 'Em Análise', priority: 'Alta' },
-    { id: 'OS-1002', clientName: 'Ana Maria', clientPhone: '(11) 97777-6666', deviceModel: 'MacBook Air M1', issueDescription: 'Tela trincada.', entryDate: '2023-10-26', status: 'Aguardando Peças', priority: 'Média', estimatedCost: 1200 },
-    { id: 'OS-1003', clientName: 'Condomínio Solar', clientPhone: '(11) 3333-2222', deviceModel: 'DVR Intelbras 16 canais', issueDescription: 'HD não reconhecido.', entryDate: '2023-10-27', status: 'Pronto', priority: 'Alta', estimatedCost: 450 },
+    { id: 'OS-1001', clientName: 'Carlos Eduardo', clientPhone: '(11) 98888-7777', deviceModel: 'Dell Vostro 3500', issueDescription: 'Não liga, suspeita de curto na placa mãe.', entryDate: '2023-10-25', estimatedDeliveryDate: new Date().toISOString().split('T')[0], status: 'Em Análise', priority: 'Alta', technician: 'João Silva' },
+    { id: 'OS-1002', clientName: 'Ana Maria', clientPhone: '(11) 97777-6666', deviceModel: 'MacBook Air M1', issueDescription: 'Tela trincada.', entryDate: '2023-10-26', estimatedDeliveryDate: '2023-11-30', status: 'Aguardando Peças', priority: 'Média', estimatedCost: 1200, technician: 'João Silva' },
+    { id: 'OS-1003', clientName: 'Condomínio Solar', clientPhone: '(11) 3333-2222', deviceModel: 'DVR Intelbras 16 canais', issueDescription: 'HD não reconhecido.', entryDate: '2023-10-27', status: 'Pronto', priority: 'Alta', estimatedCost: 450, technician: 'Ricardo Martins' },
   ]);
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('techguard_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('techguard_user');
+    }
+  }, [currentUser]);
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  const notificationCount = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return serviceOrders.filter(os => 
+      os.status !== 'Entregue' && 
+      os.status !== 'Cancelado' && 
+      os.status !== 'Pronto' &&
+      os.estimatedDeliveryDate && 
+      os.estimatedDeliveryDate <= today
+    ).length;
+  }, [serviceOrders]);
 
   const navItems = [
     { id: AppView.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
@@ -49,12 +79,16 @@ const App: React.FC = () => {
     { id: AppView.LOGS, label: 'Histórico', icon: History },
   ];
 
+  if (!currentUser) {
+    return <Login onLogin={setCurrentUser} />;
+  }
+
   const renderView = () => {
     switch (currentView) {
       case AppView.DASHBOARD: return <Dashboard devices={devices} serviceOrders={serviceOrders} />;
       case AppView.POS: return <POS />;
-      case AppView.QUOTES: return <Quotes quotes={quotes} setQuotes={setQuotes} />;
-      case AppView.SERVICE_ORDERS: return <ServiceOrders orders={serviceOrders} setOrders={setServiceOrders} />;
+      case AppView.QUOTES: return <Quotes quotes={quotes} setQuotes={setQuotes} technicianName={currentUser.name} />;
+      case AppView.SERVICE_ORDERS: return <ServiceOrders orders={serviceOrders} setOrders={setServiceOrders} technicianName={currentUser.name} />;
       case AppView.TOOLS: return <Tools />;
       case AppView.LOGS: return <Logs />;
       default: return <Dashboard devices={devices} serviceOrders={serviceOrders} />;
@@ -96,6 +130,25 @@ const App: React.FC = () => {
             );
           })}
         </nav>
+
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          <div className="px-4 py-3 bg-slate-800/50 rounded-2xl flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-black uppercase">
+              {currentUser.name.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-black truncate">{currentUser.name}</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold">{currentUser.role}</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-2 w-full text-rose-400 hover:text-rose-300 transition-colors text-xs font-bold"
+          >
+            <LogOut size={16} />
+            <span>Encerrar Sessão</span>
+          </button>
+        </div>
       </aside>
 
       {/* Menu Mobile Overlay */}
@@ -108,6 +161,15 @@ const App: React.FC = () => {
             </button>
           </div>
           <div className="flex-1 p-6 space-y-4">
+            <div className="px-6 py-4 bg-white/5 rounded-3xl flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-xl font-black uppercase">
+                {currentUser.name.charAt(0)}
+              </div>
+              <div>
+                <p className="text-lg font-black text-white">{currentUser.name}</p>
+                <p className="text-sm text-slate-500 uppercase font-bold">{currentUser.role}</p>
+              </div>
+            </div>
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -123,6 +185,13 @@ const App: React.FC = () => {
                 </button>
               );
             })}
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-lg font-bold text-rose-500 hover:bg-rose-500/10 mt-auto transition-all"
+            >
+              <LogOut size={24} />
+              Sair
+            </button>
           </div>
         </div>
       )}
@@ -137,18 +206,26 @@ const App: React.FC = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input 
                 type="text" 
-                placeholder="Buscar..." 
-                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 text-xs md:text-sm outline-none"
+                placeholder="Buscar cliente ou OS..." 
+                className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 text-xs md:text-sm outline-none font-medium text-slate-700"
               />
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            <div className="hidden md:flex flex-col text-right mr-2">
+              <span className="text-[10px] font-black text-blue-600 uppercase tracking-tighter">Online agora</span>
+              <span className="text-xs font-bold text-slate-800">{currentUser.name}</span>
+            </div>
             <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full relative">
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+              {notificationCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 flex h-4 min-w-4 px-1 items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full border-2 border-white animate-bounce">
+                  {notificationCount}
+                </span>
+              )}
             </button>
             <div className="h-8 w-8 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-              JD
+              {currentUser.name.charAt(0)}
             </div>
           </div>
         </header>

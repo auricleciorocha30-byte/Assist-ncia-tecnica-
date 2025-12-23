@@ -8,6 +8,13 @@ export enum AppView {
   LOGS = 'logs'
 }
 
+export interface UserAccount {
+  id: string;
+  name: string;
+  role: 'Administrador' | 'Técnico';
+  username: string;
+}
+
 export type DeviceType = 'Câmera' | 'PC' | 'Servidor' | 'Roteador' | 'DVR/NVR' | 'Notebook' | 'Smartphone' | 'Outro';
 
 export type OSStatus = 'Pendente' | 'Em Análise' | 'Aguardando Peças' | 'Pronto' | 'Entregue' | 'Cancelado';
@@ -20,9 +27,11 @@ export interface ServiceOrder {
   deviceModel: string;
   issueDescription: string;
   entryDate: string;
+  estimatedDeliveryDate?: string;
   status: OSStatus;
   priority: 'Baixa' | 'Média' | 'Alta';
   estimatedCost?: number;
+  technician: string; // Técnico responsável
 }
 
 export interface Product {
@@ -49,6 +58,7 @@ export interface Quote {
   items: QuoteItem[];
   total: number;
   status: 'Aberto' | 'Aprovado' | 'Recusado';
+  technician: string; // Técnico que gerou o orçamento
 }
 
 export interface Device {
@@ -68,10 +78,4 @@ export interface MaintenanceLog {
   description: string;
   technician: string;
   cost?: number;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
 }

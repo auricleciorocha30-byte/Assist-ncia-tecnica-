@@ -17,13 +17,20 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ devices, serviceOrders }) => {
   const offlineCount = devices.filter(d => d.status === 'offline').length;
-  const pendingOS = serviceOrders.filter(os => os.status === 'Pendente' || os.status === 'Em Análise').length;
-  const readyOS = serviceOrders.filter(os => os.status === 'Pronto').length;
+  const today = new Date().toISOString().split('T')[0];
+  
+  const alertOSCount = serviceOrders.filter(os => 
+    os.status !== 'Entregue' && 
+    os.status !== 'Cancelado' && 
+    os.status !== 'Pronto' &&
+    os.estimatedDeliveryDate && 
+    os.estimatedDeliveryDate <= today
+  ).length;
 
   const stats = [
     { label: 'OS Ativas', value: serviceOrders.filter(o => o.status !== 'Entregue' && o.status !== 'Cancelado').length, icon: ClipboardList, color: 'blue' },
     { label: 'Em Reparo', value: serviceOrders.filter(o => o.status === 'Em Análise').length, icon: Wrench, color: 'amber' },
-    { label: 'Rede Offline', value: offlineCount, icon: AlertTriangle, color: 'red' },
+    { label: 'Prazos Críticos', value: alertOSCount, icon: Clock, color: 'red' },
     { label: 'Faturamento Est.', value: `R$ ${serviceOrders.reduce((acc, curr) => acc + (curr.estimatedCost || 0), 0)}`, icon: Activity, color: 'green' },
   ];
 
@@ -45,7 +52,7 @@ const Dashboard: React.FC<DashboardProps> = ({ devices, serviceOrders }) => {
             amber: 'bg-amber-50 text-amber-600'
           };
           return (
-            <div key={i} className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div key={i} className={`bg-white p-5 md:p-6 rounded-2xl border shadow-sm transition-all ${stat.color === 'red' && stat.value > 0 ? 'border-rose-200 ring-2 ring-rose-50' : 'border-slate-200'}`}>
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-xl ${colors[stat.color as keyof typeof colors]}`}>
                   <Icon size={20} className="md:w-6 md:h-6" />

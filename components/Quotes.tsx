@@ -1,14 +1,15 @@
 
 import React, { useState } from 'react';
 import { Quote, QuoteItem } from '../types';
-import { Plus, Trash2, Printer, Search, X, FilePlus, User, Calendar, DollarSign, FileText } from 'lucide-react';
+import { Plus, Trash2, Printer, Search, X, FilePlus, User, Calendar, DollarSign, FileText, ShieldCheck } from 'lucide-react';
 
 interface Props {
   quotes: Quote[];
   setQuotes: React.Dispatch<React.SetStateAction<Quote[]>>;
+  technicianName: string;
 }
 
-const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
+const Quotes: React.FC<Props> = ({ quotes, setQuotes, technicianName }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newQuote, setNewQuote] = useState<Partial<Quote>>({
     clientName: '',
@@ -49,7 +50,8 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
       validUntil: newQuote.validUntil as string,
       items: newQuote.items as QuoteItem[],
       total,
-      status: 'Aberto'
+      status: 'Aberto',
+      technician: technicianName
     };
 
     setQuotes(prev => [quoteToAdd, ...prev]);
@@ -68,7 +70,7 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Orçamentos</h2>
-          <p className="text-slate-500">Crie e gerencie propostas comerciais para seus clientes.</p>
+          <p className="text-sm text-slate-500">Propostas comerciais geradas por sua equipe.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
@@ -102,6 +104,10 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
                   <User size={14} />
                   {quote.clientName}
                 </div>
+                <div className="flex items-center gap-2 mt-1 text-[10px] font-bold text-slate-400">
+                  <ShieldCheck size={12} className="text-blue-400" />
+                  EMITIDO POR: {quote.technician}
+                </div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-xl space-y-2 max-h-32 overflow-y-auto thin-scrollbar">
@@ -126,19 +132,16 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
             </div>
           </div>
         ))}
-        {quotes.length === 0 && (
-          <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-            <FileText size={48} className="mx-auto text-slate-200 mb-4" />
-            <p className="text-slate-400 font-medium">Nenhum orçamento emitido.</p>
-          </div>
-        )}
       </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-800">Criar Novo Orçamento</h3>
+              <div>
+                <h3 className="font-bold text-slate-800">Criar Novo Orçamento</h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Técnico: {technicianName}</p>
+              </div>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
                 <X size={20} />
               </button>
@@ -154,19 +157,10 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
                   <label className="text-xs font-bold text-slate-500 uppercase">WhatsApp</label>
                   <input required type="text" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="(00) 00000-0000" value={newQuote.clientPhone} onChange={e => setNewQuote({...newQuote, clientPhone: e.target.value})} />
                 </div>
-                <div className="col-span-2 md:col-span-1 space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Data Emissão</label>
-                  <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm" value={newQuote.date} onChange={e => setNewQuote({...newQuote, date: e.target.value})} />
-                </div>
-                <div className="col-span-2 md:col-span-1 space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Validade</label>
-                  <input type="date" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm" value={newQuote.validUntil} onChange={e => setNewQuote({...newQuote, validUntil: e.target.value})} />
-                </div>
               </div>
 
               <div className="space-y-4">
                 <h4 className="text-sm font-black text-slate-800 uppercase border-b pb-2">Itens do Orçamento</h4>
-                
                 <div className="grid grid-cols-12 gap-2">
                   <div className="col-span-6">
                     <input type="text" placeholder="Descrição/Serviço" className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none" value={itemForm.description} onChange={e => setItemForm({...itemForm, description: e.target.value})} />
@@ -175,7 +169,7 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
                     <input type="number" placeholder="Qtd" className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none" value={itemForm.quantity} onChange={e => setItemForm({...itemForm, quantity: Number(e.target.value)})} />
                   </div>
                   <div className="col-span-3">
-                    <input type="number" placeholder="R$ Unid." className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none" value={itemForm.unitPrice} onChange={e => setItemForm({...itemForm, unitPrice: Number(e.target.value)})} />
+                    <input type="number" placeholder="R$ Un." className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none" value={itemForm.unitPrice} onChange={e => setItemForm({...itemForm, unitPrice: Number(e.target.value)})} />
                   </div>
                   <div className="col-span-1">
                     <button type="button" onClick={addItem} className="w-full h-full flex items-center justify-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -202,14 +196,14 @@ const Quotes: React.FC<Props> = ({ quotes, setQuotes }) => {
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-900 text-white rounded-2xl flex justify-between items-center">
+              <div className="p-4 bg-slate-900 text-white rounded-2xl flex justify-between items-center mt-auto">
                 <span className="text-xs font-bold uppercase text-slate-400 tracking-widest">Total Geral</span>
                 <span className="text-2xl font-black">R$ {newQuote.items?.reduce((acc, i) => acc + (i.quantity * i.unitPrice), 0).toFixed(2)}</span>
               </div>
 
               <div className="flex gap-3">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all">Salvar Orçamento</button>
+                <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all">Salvar Proposta</button>
               </div>
             </form>
           </div>
